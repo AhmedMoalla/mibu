@@ -9,7 +9,7 @@ const winapiGlue = @import("winapiGlue.zig");
 
 const builtin = @import("builtin");
 
-pub fn enableRawMode(handle: std.fs.File.Handle) !RawTerm {
+pub fn enableRawMode(handle: std.Io.File.Handle) !RawTerm {
     switch (builtin.os.tag) {
         .linux => return enableRawModePosix(handle),
         .macos => return enableRawModePosix(handle),
@@ -75,7 +75,7 @@ pub const RawTerm = struct {
     },
 
     /// The OS-specific file descriptor or file handle.
-    handle: std.fs.File.Handle,
+    handle: std.Io.File.Handle,
 
     const Self = @This();
 

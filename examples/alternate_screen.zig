@@ -8,11 +8,11 @@ const term = mibu.term;
 const color = mibu.color;
 const cursor = mibu.cursor;
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
     var stdout_buffer: [1]u8 = undefined;
 
-    var stdout_file = std.fs.File.stdout();
-    var stdout_writer = stdout_file.writer(&stdout_buffer);
+    var stdout_file = std.Io.File.stdout();
+    var stdout_writer = stdout_file.writer(init.io, &stdout_buffer);
 
     const stdout = &stdout_writer.interface;
 
@@ -20,7 +20,7 @@ pub fn main() !void {
     // and cursor.show are flushed when the program exits.
     defer stdout.flush() catch {};
 
-    if (!std.posix.isatty(stdout_file.handle)) {
+    if (!try stdout_file.isTty(init.io)) {
         try stdout.print("The current file descriptor is not referring to a terminal.\n", .{});
         return;
     }
@@ -40,5 +40,6 @@ pub fn main() !void {
     try stdout.print("This is being shown in the alternate screen...", .{});
     try stdout.flush();
 
-    std.Thread.sleep(std.time.ns_per_s * 2);
+    const duration = std.Io.Duration.fromSeconds(2);
+    try std.Io.sleep(init.io, duration, .cpu_thread);
 }

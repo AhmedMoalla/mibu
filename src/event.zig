@@ -1,5 +1,4 @@
 const std = @import("std");
-const io = std.io;
 const unicode = std.unicode;
 const windows = std.os.windows;
 const winapiGlue = @import("winapiGlue.zig");
@@ -44,7 +43,7 @@ pub const Key = struct {
     mods: Modifiers = .{},
     code: KeyCode,
 
-    pub fn format(this: @This(), writer: *std.io.Writer) std.io.Writer.Error!void {
+    pub fn format(this: @This(), writer: *std.Io.Writer) std.Io.Writer.Error!void {
         try writer.writeAll("Key{ ");
         var first = true;
 
@@ -95,7 +94,7 @@ pub const Mouse = struct {
     is_shift: bool,
     is_ctrl: bool,
 
-    pub fn format(this: @This(), writer: *std.io.Writer) std.io.Writer.Error!void {
+    pub fn format(this: @This(), writer: *std.Io.Writer) std.Io.Writer.Error!void {
         try writer.writeAll("Mouse.");
         try writer.print("x: {d}, y: {d}, button: {any}, is_alt: {any}, is_shift: {any}, is_ctrl: {any}", .{ this.x, this.y, this.button, this.is_alt, this.is_shift, this.is_ctrl });
     }
@@ -119,9 +118,9 @@ pub const MouseButton = enum {
 /// When used in canonical mode, the user needs to press Enter to receive the event.
 /// When raw terminal mode is activated, the function waits up to the specified timeout
 /// for at least one event before returning.
-pub fn nextWithTimeout(file: std.fs.File, timeout_ms: i32) !Event {
+pub fn nextWithTimeout(io: std.Io, file: std.Io.File, timeout_ms: i32) !Event {
     switch (@import("builtin").os.tag) {
-        .linux, .macos => return nextWithTimeoutPosix(file, timeout_ms),
+        .linux, .macos => return nextWithTimeoutPosix(io, file, timeout_ms),
         .windows => return nextWithTimeoutWindows(file, timeout_ms),
         else => return error.UnsupportedPlatform,
     }
@@ -137,21 +136,21 @@ fn nextWithTimeoutWindows(file: std.fs.File, timeout_ms: i32) !Event {
     };
 }
 
-fn nextWithTimeoutPosix(file: std.fs.File, timeout_ms: i32) !Event {
+fn nextWithTimeoutPosix(io: std.Io, file: std.Io.File, timeout_ms: i32) !Event {
     var polls: [1]std.posix.pollfd = .{.{
         .fd = file.handle,
         .events = std.posix.POLL.IN,
         .revents = 0,
     }};
     if ((try std.posix.poll(&polls, timeout_ms)) > 0) {
-        return next(file);
+        return next(io, file);
     }
 
     return .timeout;
 }
 
 /// Returns true if there are events, false otherwise
-fn terminalHasEvent(file: std.fs.File) !bool {
+fn terminalHasEvent(file: std.Io.File) !bool {
     switch (@import("builtin").os.tag) {
         .linux, .macos => {
             var polls: [1]std.posix.pollfd = .{.{
@@ -376,9 +375,9 @@ fn parseEscapeSequence(reader: *std.Io.Reader) !Event {
 /// Returns the next event received.
 /// When used with canonical mode, the user needs to press enter to receive the event.
 /// When raw term is activated it will block until read at least one event.
-pub fn next(file: std.fs.File) !Event {
+pub fn next(io: std.Io, file: std.Io.File) !Event {
     var reader_buf: [1]u8 = undefined;
-    var file_reader = file.reader(&reader_buf);
+    var file_reader = file.reader(io, &reader_buf);
     const reader = &file_reader.interface;
 
     const c0 = try readByteOrNull(reader) orelse return .none;
