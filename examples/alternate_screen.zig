@@ -41,5 +41,5 @@ pub fn main(init: std.process.Init) !void {
     try stdout.flush();
 
     const duration = std.Io.Duration.fromSeconds(2);
-    try std.Io.sleep(init.io, duration, .cpu_thread);
+    try std.Io.sleep(init.io, duration, .real);
 }

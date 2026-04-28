@@ -121,16 +121,16 @@ pub const MouseButton = enum {
 pub fn nextWithTimeout(io: std.Io, file: std.Io.File, timeout_ms: i32) !Event {
     switch (@import("builtin").os.tag) {
         .linux, .macos => return nextWithTimeoutPosix(io, file, timeout_ms),
-        .windows => return nextWithTimeoutWindows(file, timeout_ms),
+        .windows => return nextWithTimeoutWindows(io, file, timeout_ms),
         else => return error.UnsupportedPlatform,
     }
 }
 
-fn nextWithTimeoutWindows(file: std.fs.File, timeout_ms: i32) !Event {
+fn nextWithTimeoutWindows(io: std.Io, file: std.Io.File, timeout_ms: i32) !Event {
     const timeout: windows.DWORD = if (timeout_ms < 0) winapiGlue.INFINITE else @intCast(timeout_ms);
     const result = winapiGlue.WaitForSingleObject(file.handle, timeout);
     return switch (result) {
-        winapiGlue.WAIT_OBJECT_0 => next(file),
+        winapiGlue.WAIT_OBJECT_0 => next(io, file),
         winapiGlue.WAIT_TIMEOUT_VAL => .timeout,
         else => error.WaitError,
     };

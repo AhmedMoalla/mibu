@@ -71,9 +71,9 @@ fn detectImpl(io: std.Io, input: std.Io.File, output: std.Io.File, timeout: i32)
             if (winapiGlue.WaitForSingleObject(input.handle, t) == winapiGlue.WAIT_TIMEOUT_VAL) {
                 return error.Timeout;
             }
-            n = try input.read(buf[0..]);
+            n = try input.readStreaming(io, &.{buf[0..]});
             if (n < buf.len and winapiGlue.WaitForSingleObject(input.handle, 50) == winapiGlue.WAIT_OBJECT_0) {
-                n += try input.read(buf[n..]);
+                n += try input.readStreaming(io, &.{buf[n..]});
             }
         },
         else => return error.UnsupportedPlatform,
